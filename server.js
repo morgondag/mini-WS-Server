@@ -4,6 +4,10 @@ var webSocketServer = require('websocket').server;
 var http = require('http');
 var clients = [];
 
+var os = require( 'os' );
+var networkInterfaces = os.networkInterfaces( );
+console.log( 'local-ip for testing:',networkInterfaces.en0[1].address );
+
 //HTTP server
 var server = http.createServer(function(request, response) {});
 
