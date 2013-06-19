@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ws test</title>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+
+    <script>
+    connection = new WebSocket('ws://localhost:1337/');
+    console.log('connection to ws');
+
+    connection.onopen = function() {
+        console.log('connection found');
+        console.log('sending username');
+        connection.send('username')
+    };
+
+    connection.onerror = function(error) {
+        console.log('WebSocket Error ' + error);
+    };
+
+    connection.onmessage = function(e) {
+        console.log('getting broadcast:\n',e.data);
+    };
+
+    connection.onclose = function(e) {
+        console.log('bye');
+    };
+
+    $(function(){
+        $('form').submit(function(e) {
+            e.preventDefault();
+            connection.send($('input').val(''));
+            $('input').val('');
+            console.log('sending');
+
+            return false;
+        }); 
+    })
+
+
+
+    </script>
+
+</head>
+<body>
+    <form action="">
+    <input type="text" placeholder="type in username">
+    <div id="output"></div>
+    </form>
+</body>
+</html>
