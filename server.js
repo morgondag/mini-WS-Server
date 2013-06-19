@@ -1,15 +1,31 @@
 'use strict';
-var wsPort = 1337;
+var wsPort = 1399;
 var webSocketServer = require('websocket').server;
 var http = require('http');
 var clients = [];
+var fs = require('fs')
+var os = require('os');
+var networkInterfaces = os.networkInterfaces();
+console.log('local-ip for testing:', networkInterfaces.en0[1].address);
+//https://github.com/Worlize/WebSocket-Node/wiki/Documentation
 
-var os = require( 'os' );
-var networkInterfaces = os.networkInterfaces( );
-console.log( 'local-ip for testing:',networkInterfaces.en0[1].address );
 
 //HTTP server
-var server = http.createServer(function(request, response) {});
+var server = http.createServer(function(request, response) {
+
+    fs.readFile(__dirname + '/test.html', function(err, html) {
+        if (err) {
+            throw err;
+        }
+
+        response.writeHeader(200, {
+            "Content-Type": "text/html"
+        });
+        response.write(html + 'connect to ip:<span id="ip">' + networkInterfaces.en0[1].address + ':' + wsPort + '</span>');
+        response.end();
+    });
+
+});
 
 server.listen(wsPort, function() {
     console.log('Yeaah WS on :' + wsPort);
@@ -17,11 +33,27 @@ server.listen(wsPort, function() {
 
 //WS Server
 var wsServer = new webSocketServer({
-    httpServer: server
+    httpServer: server,
+    autoAcceptConnections: false
 });
 
+function originIsAllowed(origin) {
+    return true;
+}
+
+
 wsServer.on('request', function(request) {
-    var connection = request.accept(null, request.origin);
+    if (!originIsAllowed(request.origin)) {
+        // Make sure we only accept requests from an allowed origin
+        request.reject();
+        console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+        return;
+    }
+
+
+
+    var connection = request.accept('echo-protocol', request.origin);
+
     var index = clients.push(connection) - 1;
     var userName = false;
 
@@ -32,22 +64,20 @@ wsServer.on('request', function(request) {
             userName = message.utf8Data;
             console.log((new Date()) + ' New Dude: ' + userName);
 
-        // msg and broadcast
+            // msg and broadcast
         } else {
             console.log((new Date()) + ' Message from ' + userName + ': ' + message.utf8Data);
+
             var obj = {
-                time: (new Date()).getTime(),
-                text: message,
-                author: userName
+                time: new Date(),
+                text: message.utf8Data,
+                author: userName,
+                type: 'message'
             };
 
-            var msg = JSON.stringify({
-                type: 'message',
-                data: obj
-            });
 
             for (var i = 0; i < clients.length; i++) {
-                clients[i].sendUTF(msg);
+                clients[i].sendUTF(JSON.stringify(obj));
             }
         }
     });
