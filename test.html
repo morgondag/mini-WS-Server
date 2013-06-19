@@ -6,37 +6,76 @@
     <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
 
     <script>
-    connection = new WebSocket('ws://localhost:1337/');
-    console.log('connection to ws');
+    var ip = ''
 
-    connection.onopen = function() {
-        console.log('connection found');
-        console.log('sending username');
-        connection.send('username')
-    };
+    var first = true;
 
-    connection.onerror = function(error) {
-        console.log('WebSocket Error ' + error);
-    };
+    
+    
+    $('#output').prepend('<div>connection to ws</div>')
+    
 
-    connection.onmessage = function(e) {
-        console.log('getting broadcast:\n',e.data);
-    };
-
-    connection.onclose = function(e) {
-        console.log('bye');
-    };
 
     $(function(){
+
+        ip = $('span#ip').html()
+        ip = ip.toString();
+        console.log(ip);
+        wsConnect();
+        $('input').focus();
         $('form').submit(function(e) {
             e.preventDefault();
-            connection.send($('input').val(''));
-            $('input').val('');
-            console.log('sending');
 
+            if(first){
+                
+                connection.send($('input').val());
+                $('input').attr("placeholder", "New message");
+                $('input').val('');
+             
+            }
+
+
+            connection.send($('input').val());
+            $('input').val('');            
             return false;
         }); 
     })
+
+
+    function wsConnect(){
+        
+    connection = new WebSocket('ws://'+ip,'echo-protocol');
+
+    connection.onopen = function() {
+        $('#output').prepend('<div>connection found</div>');
+        
+        
+    };
+
+    connection.onerror = function(error) {
+        $('#output').prepend('<div>WebSocket Error ' + error+'</div>')
+    };
+
+    connection.onmessage = function(e) {
+        
+        if(first){
+            console.log('first');
+            first = false;
+            $('#output').prepend('<div>User joined</div>');
+        } else {
+        
+        var broadcast = JSON.parse(e.data)
+        console.log(broadcast);
+        $('#output').prepend('<div>'+broadcast.author+': '+ broadcast.text+'</div>')     
+
+        }
+    };
+
+    connection.onclose = function(e) {
+        $('#output').prepend('<div>connection close</div>')
+    };
+           
+    } 
 
 
 
